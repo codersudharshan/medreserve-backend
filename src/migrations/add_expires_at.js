@@ -17,6 +17,18 @@ async function runMigration() {
   
   try {
     console.log('Starting migration: add_expires_at');
+    
+    // First check if bookings table exists
+    const tableCheck = await client.query(`
+      SELECT to_regclass('public.bookings') as exists
+    `);
+    
+    if (tableCheck.rows[0].exists === null) {
+      console.log('⚠️  bookings table does not exist. Please run schema initialization first.');
+      console.log('   The server will auto-initialize on startup, or run: psql -f sql/init.sql');
+      process.exit(0);
+    }
+    
     await client.query('BEGIN');
 
     // Step 1: Add expires_at column if it doesn't exist
