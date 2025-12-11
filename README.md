@@ -338,7 +338,7 @@ PORT=4000
 NODE_ENV=development
 
 # Production (Render)
-# DATABASE_URL=postgresql://user:password@host:port/database
+# DATABASE_URL=postgresql://user:password@host:port/database?ssl=true
 ```
 
 ### Required Variables
@@ -357,7 +357,18 @@ NODE_ENV=development
 
 ## 🗄 Database Setup
 
-### Initial Schema
+### Automatic Setup (Recommended for Render)
+
+The database schema is **automatically initialized** on server startup. No manual SQL execution needed!
+
+When the server starts, it will:
+1. Check if required tables exist (`doctors`, `slots`, `bookings`)
+2. Create tables from `sql/init.sql` if missing
+3. Run `expires_at` migration automatically if needed
+
+**For Render deployments**: Just set `DATABASE_URL` with `?ssl=true` and deploy. Everything else is automatic!
+
+### Manual Setup (Local Development)
 
 Run the schema file to create all tables:
 
@@ -416,32 +427,64 @@ The booking expiry job starts automatically when the server starts. It:
 
 ## 🚢 Deployment
 
-### Deploy to Render
+### Deploy to Render (Zero-Configuration)
+
+The backend automatically initializes the database schema on startup. **No manual SQL execution or Shell access required!**
+
+#### Quick Deploy Steps
 
 1. **Create a new Web Service** on Render
-2. **Connect your repository**
+2. **Connect your GitHub repository**
 3. **Configure build settings:**
    - Build Command: `npm install`
    - Start Command: `npm start`
-4. **Add environment variables:**
-   - `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
-   - Or use `DATABASE_URL` (auto-provided by Render PostgreSQL)
-   - `NODE_ENV=production`
-   - `PORT` (auto-set by Render)
-5. **Create PostgreSQL database** on Render
-6. **Run migrations** after first deploy:
-   ```bash
-   # SSH into Render instance or use Render Shell
-   psql $DATABASE_URL -f schema.sql
-   npm run migrate
+4. **Create PostgreSQL database** on Render (if not already created)
+5. **Add environment variables** in Render Dashboard:
+   ```env
+   DATABASE_URL=postgresql://user:password@host:port/database?ssl=true
+   PORT=4000
+   NODE_ENV=production
    ```
+   
+   **Important**: The `DATABASE_URL` must include `?ssl=true` for Render PostgreSQL databases.
+   
+   Example:
+   ```
+   postgresql://medreserve_db_user:password@dpg-xxxxx-a.singapore-postgres.render.com:5432/medreserve_db?ssl=true
+   ```
+6. **Deploy** - The server will automatically:
+   - ✅ Connect to the database
+   - ✅ Check if tables exist
+   - ✅ Create schema from `sql/init.sql` if needed
+   - ✅ Run `expires_at` migration automatically
+   - ✅ Start the booking expiry job
+   - ✅ Begin serving API requests
+
+#### What Happens on Startup
+
+When the server starts, you'll see these console messages:
+
+```
+✓ Database connection successful
+🔍 Checking database schema...
+📌 Schema missing → creating tables from sql/init.sql
+✅ Schema ready
+ℹ️  Running expires_at migration if needed
+✅ Backend fully initialized
+🚀 MedReserve API server running on port 4000
+```
+
+**No manual intervention needed!** Everything runs automatically.
 
 ### Environment Variables for Render
 
 ```env
+# Required
+DATABASE_URL=postgresql://user:password@host:port/database?ssl=true
+PORT=4000
+
+# Optional
 NODE_ENV=production
-DATABASE_URL=<auto-provided-by-render>
-PORT=<auto-set-by-render>
 ```
 
 ### Health Check Endpoint

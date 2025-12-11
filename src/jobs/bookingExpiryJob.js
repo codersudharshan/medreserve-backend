@@ -80,18 +80,30 @@ async function runExpiryCheck(pool) {
     // Silently succeed if no bookings expired (no need to log every 30s)
   } catch (error) {
     // Log errors but don't crash the job - it will retry on next interval
+    // Check if it's a connection error (common during deployment/restart)
+    if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND') {
+      // Connection errors are expected during deployment - only log once per minute to avoid spam
+      const now = Date.now();
+      if (!runExpiryCheck.lastConnectionError || (now - runExpiryCheck.lastConnectionError) > 60000) {
+        console.warn(`[${new Date().toISOString()}] Booking expiry job: Database connection issue (${error.code}). Will retry...`);
+        runExpiryCheck.lastConnectionError = now;
+      }
+      return; // Silently retry on next interval
+    }
+    
     // Check if it's a column missing error
     if (error.message && error.message.includes('expires_at')) {
       console.error(`[${new Date().toISOString()}] Booking expiry job: expires_at column error. Please run migration: npm run migrate`);
     } else {
+      // Log other errors (but not connection errors that we've already handled)
       console.error(`[${new Date().toISOString()}] Error in booking expiry job:`, {
         message: error.message,
         code: error.code
       });
-    }
-    // Don't log full stack trace in production to avoid noise
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Stack trace:', error.stack);
+      // Don't log full stack trace in production to avoid noise
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Stack trace:', error.stack);
+      }
     }
   }
 }
