@@ -1,7 +1,7 @@
 const cors = require("cors");
 require("dotenv").config();
 const app = require("./app");
-const { pool } = require("../config/database");
+const pool = require("../config/database");
 const bookingExpiryJob = require("./jobs/bookingExpiryJob");
 const { initializeDatabase } = require("./db/init");
 
@@ -24,7 +24,7 @@ async function startServer() {
     
     // Step 3: Start the booking expiry background job
     // This job runs every 30 seconds to mark expired PENDING bookings as FAILED
-    bookingExpiryJob.start(pool);
+    bookingExpiryJob.start();
     
     // Step 4: Start the HTTP server
     app.listen(PORT, () => {
