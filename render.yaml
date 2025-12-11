@@ -1,0 +1,36 @@
+# Render Blueprint for MedReserve Backend
+# This file can be used to deploy the backend to Render
+
+services:
+  - type: web
+    name: medreserve-api
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      # Or use DATABASE_URL if using Render PostgreSQL
+      - key: DATABASE_URL
+        fromDatabase:
+          name: medreserve-db
+          property: connectionString
+
+databases:
+  - name: medreserve-db
+    databaseName: medreserve
+    user: medreserve_user
+    plan: starter
+
